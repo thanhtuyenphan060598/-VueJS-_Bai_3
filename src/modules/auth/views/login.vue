@@ -2,7 +2,7 @@
 <template>
   <div class="login">
     <h1 class="header">Hi, Welcome Back!</h1>
-    <form>
+    <form @submit.prevent="login" novalidate>
       <div class="email">
         <img src="@/assets/svg/email.svg" alt="" class="email_icon" />
         <input
@@ -11,6 +11,11 @@
           placeholder="Your email"
           v-model="email"
         />
+      </div>
+      <div class="error" v-if="formstate">
+        <template v-if="!validation.form.email.required">
+          Email is required !
+        </template>
       </div>
       <div class="password">
         <img src="@/assets/svg/password.svg" alt="" class="password_icon" />
@@ -26,6 +31,11 @@
           <span v-else>HIDE</span>
         </button>
       </div>
+      <div class="error" v-if="formstate">
+        <template v-if="!validation.form.password.required">
+          Password is required !
+        </template>
+      </div>
       <div class="options">
         <div class="options_remember">
           <input type="checkbox" name="" id="remember" v-model="rememberMe" />
@@ -37,7 +47,7 @@
           >
         </div>
       </div>
-      <button @click.prevent="login">Login</button>
+      <button type="submit">Login</button>
     </form>
     <div class="seperator">
       <span>Or login with</span>
@@ -72,24 +82,49 @@ export default {
       email: "",
       password: "",
       rememberMe: false,
+      formstate: false,
+      is_loading: false,
     };
+  },
+  computed: {
+    validation() {
+      const email = {
+        required: this.email ? true : false,
+      };
+      const password = {
+        required: this.password ? true : false,
+      };
+      return {
+        form: {
+          email,
+          password,
+        },
+        valid: email.required && password.required,
+      };
+    },
   },
   methods: {
     togglePassword() {
       this.isShow = !this.isShow;
     },
     async login() {
+      this.formstate = true;
+      if (this.is_loading || !this.validation.valid) return;
+      this.is_loading = true;
+
       const { data } = await axios
         .post("https://sohead-api-dev.socialhead.dev/api/app/sign-in", {
           email: this.email,
           password: this.password,
           timezone: new Date(),
         })
-        .then(({ data }) => data)
+        .then(({ data }) => {
+          this.is_loading = false;
+
+          return data;
+        })
         .catch((err) => {
-          if (err.response.status === 422) {
-            return alert("Email address or password incorrect!");
-          }
+          if (err.response.status === 422) this.is_loading = false;
         });
 
       let now = new Date();
@@ -334,6 +369,9 @@ export default {
       color: $main-color;
       text-decoration: none;
     }
+  }
+  .error {
+    color: red;
   }
 }
 </style>

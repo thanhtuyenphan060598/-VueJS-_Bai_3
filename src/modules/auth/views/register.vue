@@ -2,7 +2,7 @@
 <template>
   <div class="register">
     <h1 class="header">Register Account</h1>
-    <form>
+    <form @submit.prevent="register" novalidate>
       <div class="fullname">
         <img src="@/assets/svg/user.svg" alt="" class="email_icon" />
         <input
@@ -12,6 +12,11 @@
           placeholder="Full Name"
         />
       </div>
+      <div class="error" v-if="formstate">
+        <template v-if="!validation.form.fullname.required">
+          Fullname is required !
+        </template>
+      </div>
       <div class="email">
         <img src="@/assets/svg/email.svg" alt="" class="email_icon" />
         <input
@@ -20,6 +25,11 @@
           id="email"
           placeholder="Your email"
         />
+      </div>
+      <div class="error" v-if="formstate">
+        <template v-if="!validation.form.email.required">
+          Email is required !
+        </template>
       </div>
       <div class="password">
         <img src="@/assets/svg/password.svg" alt="" class="password_icon" />
@@ -35,7 +45,12 @@
           <span v-else>HIDE</span>
         </button>
       </div>
-      <button @click.prevent="register">Create Free Account</button>
+      <div class="error" v-if="formstate">
+        <template v-if="!validation.form.password.required">
+          Password is required !
+        </template>
+      </div>
+      <button class="btn-register" type="submit">Create Free Account</button>
       <span class="term">
         By providing your email, you are agreeing to our
         <a href="#">terms of service.</a>
@@ -72,13 +87,39 @@ export default {
       fullName: "",
       email: "",
       password: "",
+      formstate: false,
+      is_loading: false,
     };
+  },
+  computed: {
+    validation() {
+      const fullname = {
+        required: this.fullName ? true : false,
+      };
+      const email = {
+        required: this.email ? true : false,
+      };
+      const password = {
+        required: this.password ? true : false,
+      };
+      return {
+        form: {
+          fullname,
+          email,
+          password,
+        },
+        valid: email.required && password.required && fullname.required,
+      };
+    },
   },
   methods: {
     togglePassword() {
       this.isShow = !this.isShow;
     },
     async register() {
+      this.formstate = true;
+      if (this.is_loading || !this.validation.valid) return;
+      this.is_loading = true;
       await axios
         .post("https://sohead-api-dev.socialhead.dev/api/app/sign-up", {
           email: this.email,
@@ -88,14 +129,13 @@ export default {
         })
         .then((data) => {
           if (data.status === 200) {
-            alert(
-              "Congratulations, your account has been successfully created. Go to Login now!"
-            );
             router.push({ name: "Login" });
           }
+          this.is_loading = false;
         })
         .catch((err) => {
           console.log(err);
+          this.is_loading = false;
         });
     },
   },
@@ -288,6 +328,13 @@ export default {
       color: $main-color;
       text-decoration: none;
     }
+  }
+  .error {
+    color: red;
+  }
+
+  .btn-register {
+    cursor: pointer;
   }
 }
 </style>
